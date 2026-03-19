@@ -1,6 +1,5 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import bcrypt from "bcryptjs"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 
 export const authOptions = {
@@ -17,6 +16,9 @@ export const authOptions = {
             console.error("[Auth] Missing credentials")
             return null
           }
+
+          // Dynamic import for bcryptjs (only loaded when needed)
+          const bcrypt = await import("bcryptjs")
 
           // Query Supabase for user
           const supabase = await createServiceRoleClient()
@@ -40,7 +42,7 @@ export const authOptions = {
           // Verify password using bcrypt
           // Note: This assumes passwords are hashed in the database
           // For initial migration, you may need to handle both hashed and plain passwords
-          const isValidPassword = await bcrypt.compare(credentials.password, user.password_hash || "")
+          const isValidPassword = await bcrypt.default.compare(credentials.password, user.password_hash || "")
 
           if (!isValidPassword) {
             console.error("[Auth] Invalid password")

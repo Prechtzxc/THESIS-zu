@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import bcrypt from "bcryptjs"
 import { createServiceRoleClient } from "@/lib/supabase/server"
 import { isEmailApproved, createScholar } from "@/lib/supabase/db"
 
@@ -101,7 +100,8 @@ export async function POST(request: Request) {
 
       // Step 6: Hash password using bcryptjs (10 rounds)
       console.log(`[Register] Hashing password for: ${email}`)
-      const hashedPassword = await bcrypt.hash(password, 10)
+      const bcrypt = await import("bcryptjs")
+      const hashedPassword = await bcrypt.default.hash(password, 10)
 
       // Step 7: Create user in Supabase
       console.log(`[Register] Creating user account: ${email}`)
