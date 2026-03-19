@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AdminLayout } from "@/components/admin-layout"
-import { getStatistics, getUsers, getApplications } from "@/lib/storage"
+import { getAllScholars, getAllApplications } from "@/lib/supabase/db"
 import { FileText, Clock, LayoutDashboard, CheckCircle, XCircle, Calendar } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 

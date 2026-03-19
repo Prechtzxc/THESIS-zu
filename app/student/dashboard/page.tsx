@@ -9,18 +9,10 @@ import { StudentLayout } from "@/components/student-layout"
 import { ApplicationStatus } from "@/components/application-status"
 import { useAuth } from "@/contexts/auth-context"
 import {
-  getApplicationsByStudentId,
-  getDocumentsByStudentId,
-  getApplicationHistoryByStudentId,
-  getVerificationSchedules,
-  getFinancialDistributionScheduleForBarangay,
-  hasStudentClaimed,
-  getClaimedRecord,
-  type StudentProfile,
-  type VerificationSchedule,
-  type FinancialDistributionSchedule,
-  type Application,
-} from "@/lib/storage"
+  getApplicationsByUserId,
+  getDocumentsByUserId,
+} from "@/lib/supabase/db"
+import type { StudentProfile, VerificationSchedule, FinancialDistributionSchedule, Application } from "@/lib/storage"
 import {
   FileText,
   Calendar,

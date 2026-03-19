@@ -8,7 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MoreHorizontal, Check, X, FileText, Download, Eye } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { getApplications, updateApplication, type Application } from "@/lib/storage"
+import { getAllApplications, updateApplicationStatus } from "@/lib/supabase/db"
+import type { Application } from "@/lib/storage"
 
 interface ApplicationsTableProps {
   limit?: number
@@ -22,18 +23,31 @@ export function ApplicationsTable({ limit }: ApplicationsTableProps) {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
 
   useEffect(() => {
-    setLoading(true)
-    const allApplications = getApplications()
+    const loadApplications = async () => {
+      try {
+        setLoading(true)
+        const allApplications = await getAllApplications()
 
-    const sortedApplications = allApplications.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    )
+        const sortedApplications = allApplications.sort(
+          (a, b) => new Date(b.submission_date || "").getTime() - new Date(a.submission_date || "").getTime(),
+        )
 
-    const limitedApplications = limit ? sortedApplications.slice(0, limit) : sortedApplications
+        const limitedApplications = limit ? sortedApplications.slice(0, limit) : sortedApplications
+        setApplications(limitedApplications as any)
+        setLoading(false)
+      } catch (error) {
+        console.error("[Applications] Error loading applications:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load applications. Please try again.",
+        })
+        setLoading(false)
+      }
+    }
 
-    setApplications(limitedApplications)
-    setLoading(false)
-  }, [limit])
+    loadApplications()
+  }, [limit, toast])
 
   const handleViewApplication = (applicationId: string) => {
     toast({

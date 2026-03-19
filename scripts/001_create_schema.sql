@@ -37,12 +37,12 @@ CREATE TABLE IF NOT EXISTS public.scholars (
   civil_status VARCHAR(50),
   mother_name VARCHAR(255),
   father_name VARCHAR(255),
-  monthly_family_income DECIMAL(15, 2),
+  monthly_family_income NUMERIC(15, 2),
   number_of_siblings INTEGER,
   college_name VARCHAR(255),
   course_program VARCHAR(255),
   year_level VARCHAR(50),
-  gpa DECIMAL(3, 2),
+  gpa NUMERIC(3, 2),
   status VARCHAR(50) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed')),
   barangay VARCHAR(255),
   municipality VARCHAR(255),
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS public.applications (
   reviewed_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
   feedback TEXT,
   scholarship_type VARCHAR(100),
-  scholarship_amount DECIMAL(15, 2),
+  scholarship_amount NUMERIC(15, 2),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS public.financial_distribution_schedules (
   scholar_id UUID NOT NULL REFERENCES public.scholars(id) ON DELETE CASCADE,
   barangay VARCHAR(255) NOT NULL,
   distribution_date TIMESTAMP WITH TIME ZONE NOT NULL,
-  amount DECIMAL(15, 2) NOT NULL,
+  amount NUMERIC(15, 2) NOT NULL,
   status VARCHAR(50) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'distributed', 'cancelled')),
   distributed_at TIMESTAMP WITH TIME ZONE,
   notes TEXT,
@@ -133,7 +133,7 @@ CREATE TABLE IF NOT EXISTS public.claimed_financial_aid (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   scholar_id UUID NOT NULL REFERENCES public.scholars(id) ON DELETE CASCADE,
   distribution_schedule_id UUID REFERENCES public.financial_distribution_schedules(id) ON DELETE CASCADE,
-  amount CLAIMED DECIMAL(15, 2) NOT NULL,
+  amount_claimed NUMERIC(15, 2) NOT NULL,
   claim_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   proof_of_claim TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -525,4 +525,4 @@ ALTER TABLE IF EXISTS public.claimed_financial_aid
 DROP COLUMN IF EXISTS amount_claimed;
 
 ALTER TABLE IF EXISTS public.claimed_financial_aid
-ADD COLUMN IF NOT EXISTS amount_claimed DECIMAL(15, 2) NOT NULL;
+ADD COLUMN IF NOT EXISTS amount_claimed NUMERIC(15, 2) NOT NULL;

@@ -12,13 +12,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
-import { createUser, createApplication, initializeStorage, isEmailPreApproved } from "@/lib/storage"
 import { ArrowLeft, ArrowRight, CheckCircle, User, School, Lock, Mail } from "lucide-react"
-
-// Initialize storage when the page loads
-if (typeof window !== "undefined") {
-  initializeStorage()
-}
+import { isEmailApproved } from "@/lib/supabase/db"
 
 type FormData = {
   email: string

@@ -1,23 +1,7 @@
 import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-
-// Mock users for demo purposes
-const users = [
-  {
-    id: "1",
-    name: "Juan Dela Cruz",
-    email: "student@example.com",
-    password: "Student123", // Changed from password123 to Student123
-    role: "student",
-  },
-  {
-    id: "2",
-    name: "Admin User",
-    email: "admin@example.com",
-    password: "Admin123", // Changed from password123 to Admin123
-    role: "admin",
-  },
-]
+import bcrypt from "bcryptjs"
+import { createServiceRoleClient } from "@/lib/supabase/server"
 
 export const authOptions = {
   providers: [
@@ -30,28 +14,53 @@ export const authOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
+            console.error("[Auth] Missing credentials")
             return null
           }
 
-          const user = users.find((user) => user.email === credentials.email)
+          // Query Supabase for user
+          const supabase = await createServiceRoleClient()
+          const { data: user, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("email", credentials.email)
+            .single()
 
-          if (!user) {
+          if (error || !user) {
+            console.error("[Auth] User not found:", error)
             return null
           }
 
-          // Simple password check for demo
-          if (credentials.password !== user.password) {
+          // Check if user is active
+          if (!user.is_active) {
+            console.error("[Auth] User is inactive")
             return null
           }
+
+          // Verify password using bcrypt
+          // Note: This assumes passwords are hashed in the database
+          // For initial migration, you may need to handle both hashed and plain passwords
+          const isValidPassword = await bcrypt.compare(credentials.password, user.password_hash || "")
+
+          if (!isValidPassword) {
+            console.error("[Auth] Invalid password")
+            return null
+          }
+
+          // Update last login
+          await supabase
+            .from("users")
+            .update({ last_login: new Date().toISOString() })
+            .eq("id", user.id)
 
           return {
             id: user.id,
-            name: user.name,
+            name: user.full_name,
             email: user.email,
             role: user.role,
           }
         } catch (error) {
-          console.error("Auth error:", error)
+          console.error("[Auth] Authorization error:", error)
           return null
         }
       },
@@ -61,12 +70,14 @@ export const authOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role
+        token.sub = user.id
       }
       return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role
+        session.user.id = token.sub
+        session.user.role = token.role as string
       }
       return session
     },
@@ -79,8 +90,8 @@ export const authOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  secret: process.env.NEXTAUTH_SECRET || "THIS_IS_A_DEVELOPMENT_SECRET_CHANGE_IT",
-  debug: false, // Set to false in production
+  secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === "development",
 }
 
 const handler = NextAuth(authOptions)
