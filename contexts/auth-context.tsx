@@ -3,80 +3,52 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import type { User } from "@/lib/storage"
-import { getCurrentUser, login as loginStorage, logout as logoutStorage, initializeStorage } from "@/lib/storage"
+import { useSession, signOut } from "next-auth/react"
+
+export interface AuthUser {
+  id: string
+  name: string | null
+  email: string | null
+  role: string
+}
 
 interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string) => Promise<User | null>
-  logout: () => void
+  user: AuthUser | null
   isLoading: boolean
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { data: session, status } = useSession()
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
-  // Set mounted state
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  useEffect(() => {
-    if (!mounted) return
-
-    const loadUser = () => {
-      try {
-        // Initialize in-memory storage with sample data
-        initializeStorage()
-        const currentUser = getCurrentUser()
-        setUser(currentUser)
-      } catch (error) {
-        console.error("Error loading user:", error)
-        setUser(null)
-      } finally {
-        setIsLoading(false)
+  const user: AuthUser | null = session?.user
+    ? {
+        id: session.user.id || "",
+        name: session.user.name || null,
+        email: session.user.email || null,
+        role: (session.user as any).role || "student",
       }
-    }
+    : null
 
-    loadUser()
-  }, [mounted])
-
-  const login = async (email: string, password: string): Promise<User | null> => {
+  const logout = async () => {
     try {
-      logoutStorage()
-      setUser(null)
-
-      const loggedInUser = loginStorage(email, password)
-      if (loggedInUser) {
-        setUser(loggedInUser)
-        return loggedInUser
-      }
-      return null
-    } catch (error) {
-      console.error("Login error:", error)
-      return null
-    }
-  }
-
-  const logout = () => {
-    try {
-      setUser(null)
-      logoutStorage()
+      await signOut({ redirect: false })
       router.push("/login")
     } catch (error) {
-      console.error("Logout error:", error)
-      if (typeof window !== "undefined") {
-        window.location.href = "/login"
-      }
+      console.error("[Auth] Logout error:", error)
+      window.location.href = "/login"
     }
   }
 
-  if (!mounted || isLoading) {
+  if (!mounted || status === "loading") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
@@ -84,7 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
   }
 
-  return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, isLoading: status === "loading", logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth(): AuthContextType {

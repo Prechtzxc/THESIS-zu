@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Search, Eye, Users, Mail, GraduationCap, Calendar } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { getUsers, getApplications, hasPermission } from "@/lib/storage"
+import { getAllScholars } from "@/lib/supabase/db"
 import { PermissionGuard } from "@/components/permission-guard"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -46,51 +46,50 @@ export default function ScholarsPage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [selectedScholar, setSelectedScholar] = useState<Scholar | null>(null)
 
-  // Load real data from local storage
+  // Load real data from Supabase
   useEffect(() => {
-    setLoading(true)
+    const loadScholars = async () => {
+      try {
+        setLoading(true)
+        const data = await getAllScholars()
+        
+        // Transform Supabase data to Scholar type
+        const scholarsList: Scholar[] = data.map((scholar) => ({
+          id: scholar.id,
+          name: `${scholar.first_name} ${scholar.last_name}`,
+          course: scholar.course_program || "Unknown",
+          yearLevel: scholar.year_level || "Unknown",
+          barangay: scholar.barangay || "Unknown",
+          school: scholar.college_name || "Unknown",
+          status: scholar.status === "approved" ? "active" : "inactive",
+          semester: "1st Semester",
+          academicYear: new Date(scholar.created_at).getFullYear().toString(),
+          email: scholar.email,
+          phone: scholar.phone,
+          address: scholar.address,
+          profileImage: undefined,
+          gpa: scholar.gpa?.toString() || "N/A",
+          birthDate: scholar.date_of_birth,
+        }))
 
-    // Get all users and applications from local storage
-    const users = getUsers().filter((user) => user.role === "student")
-    const applications = getApplications()
+        setScholars(scholarsList)
 
-    // Create a map of barangays for filtering
-    const uniqueBarangays = new Set<string>()
-
-    // Transform users and applications into scholar objects
-    const scholarsList: Scholar[] = users.map((user) => {
-      // Find the application for this user if it exists
-      const application = applications.find((app) => app.studentId === user.id || app.email === user.email)
-
-      // Get profile data
-      const profileData = user.profileData || {}
-
-      // Add barangay to the set of unique barangays
-      const barangay = application?.barangay || profileData?.barangay || "Unknown"
-      uniqueBarangays.add(barangay)
-
-      return {
-        id: user.id,
-        name: user.name || profileData?.fullName || "Unknown",
-        course: application?.course || profileData?.course || "Unknown",
-        yearLevel: application?.yearLevel || profileData?.yearLevel || "Unknown",
-        barangay: barangay,
-        school: application?.school || profileData?.schoolName || "Unknown",
-        status: "active", // Default to active for now
-        semester: "1st Semester", // Default value
-        academicYear: "2023-2024", // Default value
-        email: user.email,
-        phone: profileData?.phoneNumber || application?.phoneNumber,
-        address: profileData?.address || application?.address,
-        profileImage: profileData?.profileImage,
-        gpa: profileData?.gpa || "N/A",
-        birthDate: profileData?.birthDate,
+        // Extract unique barangays
+        const uniqueBarangays = new Set(scholarsList.map((s) => s.barangay))
+        setBarangays(Array.from(uniqueBarangays))
+        setLoading(false)
+      } catch (error) {
+        console.error("[Scholars] Error loading scholars:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load scholars. Please try again.",
+        })
+        setLoading(false)
       }
-    })
+    }
 
-    setScholars(scholarsList)
-    setBarangays(Array.from(uniqueBarangays))
-    setLoading(false)
+    loadScholars()
   }, [])
 
   // Filter scholars based on search term and filters
